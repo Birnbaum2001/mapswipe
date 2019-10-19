@@ -95,7 +95,7 @@ class _IndividualCard extends React.Component<ICProps, ICState> {
     constructor(props: ICProps) {
         super(props);
         // vertical swipe handlers
-        this.swipeThreshold = 2;
+        this.swipeThreshold = 1;
 
         this.panResponder = PanResponder.create({
             onMoveShouldSetPanResponder: this.handleMoveShouldSetPanResponder,
@@ -103,6 +103,7 @@ class _IndividualCard extends React.Component<ICProps, ICState> {
             onPanResponderGrant: this.handlePanResponderGrant,
             onPanResponderRelease: this.handlePanResponderEnd,
             onPanResponderTerminate: this.handlePanResponderTerminate,
+            onPanResponderMove: this.handlePanResponderMove,
         });
 
         this.state = {
@@ -123,15 +124,24 @@ class _IndividualCard extends React.Component<ICProps, ICState> {
         gestureState: GestureState,
     ): boolean => Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * this.swipeThreshold;
 
-    handlePanResponderGrant = () => {
-        // OK, we've been given this swipe to handle, show feedback to the user
-        this.setState({ showSwipeHelp: true });
+    handlePanResponderGrant = (event: PressEvent, gestureState: GestureState) => {};
+
+    handlePanResponderMove = (event: PressEvent, gestureState: GestureState) => {
+        // swipe completed, decide what to do
+        const swipeMinLength = 0.35;
+        if (gestureState.dy > GLOBAL.TILE_SIZE * swipeMinLength) {
+            this.setAllTilesTo(3);
+        } else if (gestureState.dy < -GLOBAL.TILE_SIZE * swipeMinLength) {
+            this.setAllTilesTo(1);
+        } else if (gestureState.dy < GLOBAL.TILE_SIZE * swipeMinLength && gestureState.dy > -GLOBAL.TILE_SIZE * swipeMinLength) {
+            this.setAllTilesTo(0);
+        }
     };
 
     setAllTilesTo = (value) => {
         const { card, onToggleTile } = this.props;
-        card.tileRows.forEach((row) => {
-            row.tiles.forEach((tile) => {
+        card.tileRows.forEach((row, rowIndex) => {
+            row.tiles.forEach((tile, tileIndex) => {
                 onToggleTile({
                     groupId: tile.groupId,
                     resultId: tile.taskId,
@@ -142,16 +152,7 @@ class _IndividualCard extends React.Component<ICProps, ICState> {
         });
     }
 
-    handlePanResponderEnd = (event: PressEvent, gestureState: GestureState) => {
-        // swipe completed, decide what to do
-        this.setState({ showSwipeHelp: false });
-        const swipeMinLength = 0.2;
-        if (gestureState.dy > GLOBAL.TILE_VIEW_HEIGHT * swipeMinLength) {
-            this.setAllTilesTo(3);
-        } else if (gestureState.dy < -GLOBAL.TILE_VIEW_HEIGHT * swipeMinLength) {
-            this.setAllTilesTo(0);
-        }
-    };
+    handlePanResponderEnd = (event: PressEvent, gestureState: GestureState) => {};
 
     handlePanResponderTerminate = () => {
         // swipe cancelled, eg: some other component took over (ScrollView?)
